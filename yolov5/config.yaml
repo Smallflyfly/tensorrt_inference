@@ -1,12 +1,12 @@
 yolov5:
-    onnx_file:     "../yolov5s.onnx"
-    engine_file:   "../yolov5s.trt"
-    labels_file:   "../coco.names"
+    onnx_file:     "/media/smallflyfly/DATA_MANAGER/AI/tensorrt_inference/yolov5/best.onnx"
+    engine_file:   "/media/smallflyfly/DATA_MANAGER/AI/tensorrt_inference/yolov5/best.trt"
+    labels_file:   "/media/smallflyfly/DATA_MANAGER/AI/tensorrt_inference/yolov5/coco.names"
     BATCH_SIZE:    1
     INPUT_CHANNEL: 3
     IMAGE_WIDTH:   640
     IMAGE_HEIGHT:  640
-    obj_threshold: 0.4
+    obj_threshold: 0.6
     nms_threshold: 0.45
     strides:       [8, 16, 32]
     num_anchors:   [3,  3,  3]

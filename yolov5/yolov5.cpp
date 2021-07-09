@@ -41,6 +41,7 @@ void YOLOv5::LoadEngine() {
         readTrtFile(engine_file, engine);
         assert(engine != nullptr);
     } else {
+        std::cout << onnx_file << std::endl;
         onnxToTRTModel(onnx_file, engine_file, engine, BATCH_SIZE);
         assert(engine != nullptr);
     }
@@ -60,7 +61,7 @@ bool YOLOv5::InferenceFolder(const std::string &folder_name) {
     int nbBindings = engine->getNbBindings();
     bufferSize.resize(nbBindings);
 
-    for (int i = 0; i < nbBindings; ++i) {
+    for (int i = 0; i < 2; ++i) {
         nvinfer1::Dims dims = engine->getBindingDimensions(i);
         nvinfer1::DataType dtype = engine->getBindingDataType(i);
         int64_t totalSize = volume(dims) * 1 * getElementSize(dtype);
@@ -99,6 +100,8 @@ void YOLOv5::EngineInference(const std::vector<std::string> &image_list, const i
         index++;
         std::cout << "Processing: " << image_name << std::endl;
         cv::Mat src_img = cv::imread(image_name);
+        cv::resize(src_img, src_img, cv::Size(640, 640));
+//        cv::resize(src_img, src_img, cv::Size(640, 640));
         if (src_img.data)
         {
 //            cv::cvtColor(src_img, src_img, cv::COLOR_BGR2RGB);
@@ -110,19 +113,47 @@ void YOLOv5::EngineInference(const std::vector<std::string> &image_list, const i
         {
             auto t_start_pre = std::chrono::high_resolution_clock::now();
             std::cout << "prepareImage" << std::endl;
-            std::vector<float>curInput = prepareImage(vec_Mat);
+//            std::vector<float>curInput = prepareImage(vec_Mat);
+//            std::vector<float> curInput;
+
+            cv::Mat im = cv::imread("../samples/person.jpg");
+            if (im.empty()) {
+                std::cerr << "image file read error" << std::endl;
+            }
+//            cv::cvtColor(im, im, cv::COLOR_BGR2RGB);
+            cv::resize(im, im, cv::Size(640, 640));
+            im.convertTo(im, CV_32FC3, 1.0 / 255);
+
+            int channelLength = 640 * 640;
+            float *curInput = (float *) malloc(640 * 640 * 3 * sizeof(float));
+            std::vector<cv::Mat> imSplit = {
+                    cv::Mat(640, 640, CV_32FC1, curInput + channelLength * 2),
+                    cv::Mat(640, 640, CV_32FC1, curInput + channelLength * 1),
+                    cv::Mat(640, 640, CV_32FC1, curInput + channelLength * 0)
+            };
+            cv::split(im, imSplit);
+
+//            float curInput[BATCH_SIZE * 3 * 640 * 640];
+//            unsigned vol = 640 * 640 * 3;
+//            auto fileDataChar = (uchar *) malloc(BATCH_SIZE * 3 * 640 * 640 * sizeof(uchar));
+//            fileDataChar = im.data;
+//            for (int i = 0; i < vol; ++i) {
+//                curInput[i] = (float)fileDataChar[i] * 1.0;
+//            }
+
             auto t_end_pre = std::chrono::high_resolution_clock::now();
             float total_pre = std::chrono::duration<float, std::milli>(t_end_pre - t_start_pre).count();
             std::cout << "prepare image take: " << total_pre << " ms." << std::endl;
             total_time += total_pre;
             batch_id = 0;
-            if (!curInput.data()) {
-                std::cout << "prepare images ERROR!" << std::endl;
-                continue;
-            }
+//            if (!curInput.data()) {
+//                std::cout << "prepare images ERROR!" << std::endl;
+//                continue;
+//            }
             // DMA the input to the GPU,  execute the batch asynchronously, and DMA it back:
             std::cout << "host2device" << std::endl;
-            cudaMemcpyAsync(buffers[0], curInput.data(), bufferSize[0], cudaMemcpyHostToDevice, stream);
+//            cudaMemcpyAsync(buffers[0], curInput.data(), bufferSize[0], cudaMemcpyHostToDevice, stream);
+            cudaMemcpyAsync(buffers[0], curInput, bufferSize[0], cudaMemcpyHostToDevice, stream);
 
             // do inference
             std::cout << "execute" << std::endl;
